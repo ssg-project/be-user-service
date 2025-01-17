@@ -6,10 +6,19 @@ from utils.database import get_db
 from utils.logstash import create_logger
 from utils.auth_handler import AuthHandler  # AuthHandler import 추가
 import logging
+from redis import Redis
+import os
+from dotenv import load_dotenv
 
 router = APIRouter(prefix='/auth', tags=['user'])
 user_logger = create_logger('user-log')
 auth_handler = AuthHandler()
+redis_client = Redis(
+    host=os.getenv('REDIS_HOST', 'localhost'),
+    port=int(os.getenv('REDIS_PORT', 6379)),
+    db=0,
+    decode_responses=True
+)
 
 @router.post('/join', description='회원 가입')
 async def join(
@@ -59,26 +68,23 @@ async def login(
         if not user or user.password != request_body.password:
             raise HTTPException(status_code=401, detail="로그인 실패")
         
-        token_data = {"user_id": user.user_id, "email": user.email}
+        token_data = {
+            "user_id": user.user_id,
+            "email": user.email
+        }
+
         access_token = auth_handler.create_access_token(token_data)
         refresh_token = auth_handler.create_refresh_token(token_data)
         
-        response.set_cookie(
-            key="access_token",
-            value=access_token,
-            httponly=True,
-            secure=True,  # HTTPS에서만 전송
-            samesite='lax',  # CSRF 방지
-            max_age=auth_handler.access_token_expire * 60  # 분 단위를 초 단위로 변환
+        redis_client.setex(
+            f"access_token:{user.user_id}",
+            auth_handler.access_token_expire * 60,
+            access_token
         )
-        
-        response.set_cookie(
-            key="refresh_token",
-            value=refresh_token,
-            httponly=True,
-            secure=True,
-            samesite='lax',
-            max_age=auth_handler.refresh_token_expire * 60
+        redis_client.setex(
+            f"refresh_token:{user.user_id}",
+            auth_handler.refresh_token_expire * 60,
+            refresh_token
         )
         
         return {"message": "로그인 성공"}
@@ -96,26 +102,25 @@ async def refresh_token(
         if payload.get("type") != "refresh":
             raise HTTPException(status_code=401, detail="유효하지 않은 refresh token")
         
-        token_data = {"user_id": payload.get("user_id"), "email": payload.get("email")}
-        access_token = auth_handler.create_access_token(token_data)
-        refresh_token = auth_handler.create_refresh_token(token_data)
+        user_id = payload.get("user_id")
         
-        response.set_cookie(
-            key="access_token",
-            value=access_token,
-            httponly=True,
-            secure=True,  # HTTPS에서만 전송
-            samesite='lax',  # CSRF 방지
-            max_age=auth_handler.access_token_expire * 60  # 분 단위를 초 단위로 변환
+        stored_refresh_token = redis_client.get(f"refresh_token:{user_id}")
+        if not stored_refresh_token or stored_refresh_token != refresh_token_req.refresh_token:
+            raise HTTPException(status_code=401, detail="만료되었거나 유효하지 않은 토큰")
+        
+        token_data = {"user_id": user_id, "email": payload.get("email")}
+        new_access_token = auth_handler.create_access_token(token_data)
+        new_refresh_token = auth_handler.create_refresh_token(token_data)
+        
+        redis_client.setex(
+            f"access_token:{user_id}",
+            auth_handler.access_token_expire * 60,
+            new_access_token
         )
-        
-        response.set_cookie(
-            key="refresh_token",
-            value=refresh_token,
-            httponly=True,
-            secure=True,
-            samesite='lax',
-            max_age=auth_handler.refresh_token_expire * 60
+        redis_client.setex(
+            f"refresh_token:{user_id}",
+            auth_handler.refresh_token_expire * 60,
+            new_refresh_token
         )
         
         return {"message": "토큰 갱신 성공"}
@@ -124,14 +129,19 @@ async def refresh_token(
 
 @router.post('/logout', description='로그아웃')
 def logout(
-    request: Request,
+    refresh_token_req: RefreshTokenRequest,
     response: Response
 ):
     try:
-
-        response.delete_cookie("access_token")
-        response.delete_cookie("refresh_token")
+        payload = auth_handler.decode_token(refresh_token_req.refresh_token)
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="유효하지 않은 refresh token")
         
+        user_id = payload.get("user_id")
+
+        redis_client.delete(f"access_token:{user_id}")
+        redis_client.delete(f"refresh_token:{user_id}")
+
         return {"message": "로그아웃 성공"}
     
     except Exception as e:
