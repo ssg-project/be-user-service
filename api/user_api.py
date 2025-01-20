@@ -140,8 +140,18 @@ async def refresh_token(
             auth_handler.refresh_token_expire * 60,
             new_refresh_token
         )
+        response.set_cookie(
+            key="refresh_token",
+            value=new_refresh_token,
+            httponly=True,
+            secure=True,
+            samesite='lax',
+            max_age=auth_handler.refresh_token_expire * 60
+        )
         
-        return {"message": "토큰 갱신 성공"}
+        return {
+            "access_token" : new_access_token,
+            "message": "토큰 갱신 성공"}
     except Exception as e:
         raise HTTPException(status_code=401, detail=str(e))
 
