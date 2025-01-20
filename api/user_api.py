@@ -101,8 +101,19 @@ async def login(
             auth_handler.refresh_token_expire * 60,
             refresh_token
         )
+
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            secure=True,
+            samesite='lax',
+            max_age=auth_handler.refresh_token_expire * 60
+        )
         
-        return {"message": "로그인 성공"}
+        return {
+            "access_token" : access_token,
+            "message": "로그인 성공"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
