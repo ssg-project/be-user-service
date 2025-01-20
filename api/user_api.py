@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, Header
 from sqlalchemy.orm import Session
 from services.user_service import UserService
 from dto.dto import *
@@ -8,6 +8,7 @@ from utils.auth_handler import AuthHandler  # AuthHandler import 추가
 import logging
 from redis import Redis
 import os
+import json
 from dotenv import load_dotenv
 
 router = APIRouter(prefix='/auth', tags=['user'])
@@ -19,6 +20,20 @@ redis_client = Redis(
     db=0,
     decode_responses=True
 )
+
+async def get_current_user(request: Request):
+    scope_data = request.headers.get("X-Scope")
+
+    if not scope_data:
+        raise HTTPException(status_code=401, detail="인증되지 않은 요청입니다.")
+    try:
+        scope = json.loads(scope_data)
+        user = scope.get("user")
+        if not user or not user.get('is_authenticated'):
+            raise HTTPException(status_code=401, detail="인증되지 않은 요청입니다.")
+        return user
+    except:
+        raise HTTPException(status_code=401, detail="인증되지 않은 요청입니다.")
 
 @router.post('/join', description='회원 가입')
 async def join(
@@ -93,32 +108,24 @@ async def login(
 
 @router.post('/refresh', description='토큰 갱신')
 async def refresh_token(
+    request: Request,
     response: Response,
-    refresh_token_req: RefreshTokenRequest,
     db: Session = Depends(get_db)
 ):
+    current_user = await get_current_user(request)
     try:
-        payload = auth_handler.decode_token(refresh_token_req.refresh_token)
-        if payload.get("type") != "refresh":
-            raise HTTPException(status_code=401, detail="유효하지 않은 refresh token")
         
-        user_id = payload.get("user_id")
-        
-        stored_refresh_token = redis_client.get(f"refresh_token:{user_id}")
-        if not stored_refresh_token or stored_refresh_token != refresh_token_req.refresh_token:
-            raise HTTPException(status_code=401, detail="만료되었거나 유효하지 않은 토큰")
-        
-        token_data = {"user_id": user_id, "email": payload.get("email")}
+        token_data = {"user_id": current_user["user_id"], "email": current_user["email"]}
         new_access_token = auth_handler.create_access_token(token_data)
         new_refresh_token = auth_handler.create_refresh_token(token_data)
         
         redis_client.setex(
-            f"access_token:{user_id}",
+            f"access_token:{current_user["user_id"]}",
             auth_handler.access_token_expire * 60,
             new_access_token
         )
         redis_client.setex(
-            f"refresh_token:{user_id}",
+            f"refresh_token:{current_user["user_id"]}",
             auth_handler.refresh_token_expire * 60,
             new_refresh_token
         )
@@ -128,19 +135,14 @@ async def refresh_token(
         raise HTTPException(status_code=401, detail=str(e))
 
 @router.post('/logout', description='로그아웃')
-def logout(
-    refresh_token_req: RefreshTokenRequest,
-    response: Response
+async def logout(
+    request: Request
 ):
+    current_user = await get_current_user(request)
     try:
-        payload = auth_handler.decode_token(refresh_token_req.refresh_token)
-        if payload.get("type") != "refresh":
-            raise HTTPException(status_code=401, detail="유효하지 않은 refresh token")
-        
-        user_id = payload.get("user_id")
 
-        redis_client.delete(f"access_token:{user_id}")
-        redis_client.delete(f"refresh_token:{user_id}")
+        redis_client.delete(f"access_token:{current_user['user_id']}")
+        redis_client.delete(f"refresh_token:{current_user['user_id']}")
 
         return {"message": "로그아웃 성공"}
     
@@ -149,10 +151,15 @@ def logout(
 
 
 @router.post('/withdrawal', description='회원 탈퇴')
-def withdrawal(
+async def withdrawal(
+    request: Request,
     request_body: UserDeleteRequest,
     db: Session = Depends(get_db),
 ):
+    current_user = await get_current_user(request)
+    if str(request_body.user_id) != current_user["user_id"]:
+        raise HTTPException(status_code=403, detail="권한이 없습니다.")
+    
     user_service = UserService(db)
 
     try:

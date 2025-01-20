@@ -36,7 +36,3 @@ class GetFileListResponse(BaseModel):
 
 class Test(BaseModel):
     files: List[bytes]
-
-### auth
-class RefreshTokenRequest(BaseModel):
-    refresh_token: str
