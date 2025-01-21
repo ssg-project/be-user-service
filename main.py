@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from api.user_api import router as user_router
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.cors import CORSMiddleware
+import uvicorn
 
 app = FastAPI()
 
@@ -25,3 +26,6 @@ app.include_router(user_router, prefix="/api/v1", tags=["user"])
 @app.get("/")
 async def read_root():
     return {"message": "Hello World"}
+
+if __name__ == "__main__":
+    uvicorn.run(app="main:app", host="0.0.0.0", port=8001, reload=True)
