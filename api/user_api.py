@@ -15,7 +15,7 @@ router = APIRouter(prefix='/auth', tags=['user'])
 user_logger = create_logger('user-log')
 auth_handler = AuthHandler()
 redis_client = Redis(
-    host=os.getenv('REDIS_HOST', 'localhost'),
+    host=os.getenv('REDIS_HOST', '127.0.0.1'),
     port=int(os.getenv('REDIS_PORT', 6379)),
     db=0,
     decode_responses=True
