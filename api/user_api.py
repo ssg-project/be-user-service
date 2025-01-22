@@ -132,12 +132,12 @@ async def refresh_token(
         new_refresh_token = auth_handler.create_refresh_token(token_data)
         
         redis_client.setex(
-            f"access_token:{current_user["user_id"]}",
+            f"access_token:{current_user['user_id']}",
             auth_handler.access_token_expire * 60,
             new_access_token
         )
         redis_client.setex(
-            f"refresh_token:{current_user["user_id"]}",
+            f"refresh_token:{current_user['user_id']}",
             auth_handler.refresh_token_expire * 60,
             new_refresh_token
         )
