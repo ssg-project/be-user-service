@@ -112,9 +112,11 @@ async def login(
         )
         
         return {
+            "user_id": user.user_id,
             "user_email": user.email,
             "access_token" : access_token,
-            "message": "로그인 성공"}
+            "message": "로그인 성공"
+            }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
