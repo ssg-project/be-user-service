@@ -1,10 +1,7 @@
-from dotenv import load_dotenv
 import os
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from fastapi import HTTPException, status
-
-load_dotenv()
 
 class AuthHandler:
     def __init__(self):
