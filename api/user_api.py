@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from services.user_service import UserService
 from dto.dto import *
 from utils.database import get_db
-from utils.logstash import create_logger
 from utils.auth_handler import AuthHandler  # AuthHandler import 추가
 import logging
 from redis import Redis
@@ -12,7 +11,6 @@ import json
 from dotenv import load_dotenv
 
 router = APIRouter(prefix='/auth', tags=['user'])
-user_logger = create_logger('user-log')
 auth_handler = AuthHandler()
 redis_client = Redis(
     host=os.getenv('REDIS_HOST', '127.0.0.1'),
@@ -46,12 +44,6 @@ async def join(
     try:
         # 사용자 등록
         user_service.insert_db_user(email=request_body.email, password=request_body.password)
-
-        msg = {
-            'information': 'ip_browser(request)',
-            'message': "scripts.board_find_all(json(session), 'Board Find All')"
-        }
-        user_logger.info(msg)
 
         # 성공 응답
         return
