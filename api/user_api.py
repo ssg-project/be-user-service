@@ -8,7 +8,6 @@ import logging
 from redis import Redis
 import os
 import json
-from dotenv import load_dotenv
 
 router = APIRouter(prefix='/auth', tags=['user'])
 auth_handler = AuthHandler()
