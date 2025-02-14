@@ -92,6 +92,8 @@ async def login(
             "message": "로그인 성공"
             }
     except Exception as e:
+        print(e)
+        print(str(redis_client))
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post('/refresh', description='토큰 갱신')
