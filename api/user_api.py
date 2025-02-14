@@ -3,8 +3,7 @@ from sqlalchemy.orm import Session
 from services.user_service import UserService
 from dto.dto import *
 from utils.database import get_db
-from utils.auth_handler import AuthHandler  # AuthHandler import 추가
-import logging
+from utils.auth_handler import AuthHandler
 from redis import Redis
 import os
 import json
@@ -12,8 +11,8 @@ import json
 router = APIRouter(prefix='/auth', tags=['user'])
 auth_handler = AuthHandler()
 redis_client = Redis(
-    host=os.getenv('REDIS_HOST', '127.0.0.1'),
-    port=int(os.getenv('REDIS_PORT', 6379)),
+    host=os.getenv('REDIS_HOST'),
+    port=int(os.getenv('REDIS_PORT')),
     db=0,
     decode_responses=True
 )
