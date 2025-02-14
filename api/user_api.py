@@ -34,32 +34,16 @@ async def get_current_user(request: Request):
 
 @router.post('/join', description='회원 가입')
 async def join(
-    request: Request,
     request_body: UserJoinRequest,
     db: Session = Depends(get_db),
 ):
     user_service = UserService(db)
 
     try:
-        # 사용자 등록
         user_service.insert_db_user(email=request_body.email, password=request_body.password)
-
-        # 성공 응답
         return
     
     except Exception as e:
-        # 비동기 로그 기록 (실패 시 상태 400)
-        # create_logger(
-        #     'user-log',
-        #     service_name="user_api",
-        #     environment="prod",
-        #     client_ip=request.client.host,
-        #     request_url=str(request.url.path),
-        #     request_body=str(request_body),
-        #     status=400,
-        # )
-
-        # 예외를 HTTPException으로 처리
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post('/login', description='로그인')
