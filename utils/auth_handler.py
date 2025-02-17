@@ -5,8 +5,8 @@ from fastapi import HTTPException, status
 
 class AuthHandler:
     def __init__(self):
-        self.secret_key = os.getenv('SECRET_KEY')
-        self.algorithm = os.getenv('ALGORITHM')
+        self.secret_key = os.getenv('JWT_SECRET_KEY')
+        self.algorithm = os.getenv('JWT_ALGORITHM')
         self.access_token_expire = int(os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES'))
         self.refresh_token_expire = int(os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES')) * 24 * 7
 
