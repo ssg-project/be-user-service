@@ -5,20 +5,21 @@ from dto.dto import *
 from utils.database import get_db
 from utils.auth_handler import AuthHandler
 from redis import Redis
-import os
 import json
+from config.config import REDIS_HOST, REDIS_PORT
 
 router = APIRouter(prefix='/auth', tags=['user'])
 auth_handler = AuthHandler()
 redis_client = Redis(
-    host=os.getenv('REDIS_HOST'),
-    port=int(os.getenv('REDIS_PORT')),
+    host=REDIS_HOST,
+    port=REDIS_PORT,
     db=0,
     decode_responses=True
 )
 
 async def get_current_user(request: Request):
     scope_data = request.headers.get("X-Scope")
+    print(scope_data)
 
     if not scope_data:
         raise HTTPException(status_code=401, detail="인증되지 않은 요청입니다.")

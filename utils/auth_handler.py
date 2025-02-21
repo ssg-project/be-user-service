@@ -1,14 +1,14 @@
-import os
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from fastapi import HTTPException, status
+from config.config import JWT_SECRET_KEY, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 
 class AuthHandler:
     def __init__(self):
-        self.secret_key = os.getenv('JWT_SECRET_KEY')
-        self.algorithm = os.getenv('JWT_ALGORITHM')
-        self.access_token_expire = int(os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES'))
-        self.refresh_token_expire = int(os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES')) * 24 * 7
+        self.secret_key = JWT_SECRET_KEY
+        self.algorithm = JWT_ALGORITHM
+        self.access_token_expire = int(ACCESS_TOKEN_EXPIRE_MINUTES)
+        self.refresh_token_expire = int(ACCESS_TOKEN_EXPIRE_MINUTES) * 24 * 7
 
     def create_access_token(self, data: dict) -> str:
         to_encode = data.copy()
