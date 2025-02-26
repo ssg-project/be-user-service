@@ -7,8 +7,10 @@ from utils.auth_handler import AuthHandler
 from redis import Redis
 import json
 from config.config import REDIS_HOST, REDIS_PORT
+import logging
 
 router = APIRouter(prefix='/auth', tags=['user'])
+logger = logging.getLogger(__name__)
 auth_handler = AuthHandler()
 redis_client = Redis(
     host=REDIS_HOST,
@@ -19,8 +21,6 @@ redis_client = Redis(
 
 async def get_current_user(request: Request):
     scope_data = request.headers.get("X-Scope")
-    print(scope_data)
-
     if not scope_data:
         raise HTTPException(status_code=401, detail="인증되지 않은 요청입니다.")
     try:
@@ -37,13 +37,16 @@ async def join(
     request_body: UserJoinRequest,
     db: Session = Depends(get_db),
 ):
+    logger.info(f"join api - start: request body : {request_body}")
     user_service = UserService(db)
 
     try:
         user_service.insert_db_user(email=request_body.email, password=request_body.password)
+        logger.info(f"join api - success")
         return
     
     except Exception as e:
+        logger.error(f"join api - error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post('/login', description='로그인')
@@ -52,6 +55,7 @@ async def login(
     request_body: UserLoginReqeust,
     db: Session = Depends(get_db),
 ):
+    logger.info(f"login api - start: request body : {request_body}")
     user_service = UserService(db)
     try:
         user = user_service.get_user_by_email(email=request_body.email)
@@ -86,6 +90,7 @@ async def login(
             max_age=auth_handler.refresh_token_expire * 60
         )
         
+        logger.info(f"login api - success")
         return {
             "user_id": user.user_id,
             "user_email": user.email,
@@ -95,6 +100,7 @@ async def login(
     except Exception as e:
         print(e)
         print(str(redis_client))
+        logger.error(f"login api - error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post('/refresh', description='토큰 갱신')
@@ -139,15 +145,18 @@ async def refresh_token(
 async def logout(
     request: Request
 ):
+    logger.info(f"logout api - start")
     current_user = await get_current_user(request)
     try:
 
         redis_client.delete(f"access_token:{current_user['user_id']}")
         redis_client.delete(f"refresh_token:{current_user['user_id']}")
 
+        logger.info(f"logout api - success")
         return {"message": "로그아웃 성공"}
     
     except Exception as e:
+        logger.error(f"logout api - error: {e}")
         raise HTTPException(status_code=400, detail=e)
 
 

@@ -2,6 +2,14 @@ from fastapi import FastAPI
 from api.user_api import router as user_router
 from prometheus_fastapi_instrumentator import Instrumentator
 import uvicorn
+import logging
+
+# 로깅 설정
+logging. basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - ticketing-service - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler()]
+)
 
 app = FastAPI()
 
