@@ -30,7 +30,6 @@ app.include_router(user_router, prefix="/api/v1", tags=["user"])
 
 @app.get("/health")
 async def health_check():
-    logger.info("Health check API called")
     return {"status": "ok"}
 
 
