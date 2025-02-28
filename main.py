@@ -20,6 +20,9 @@ logging.basicConfig(
     handlers=[logging.StreamHandler()]
 )
 
+# 로그 객체 생성
+logger = logging.getLogger("user-service")
+
 
 app = FastAPI()
 
@@ -27,6 +30,7 @@ app.include_router(user_router, prefix="/api/v1", tags=["user"])
 
 @app.get("/health")
 async def health_check():
+    logger.info("Health check API called", extra={"pod_name": pod_name, "node_name": node_name})
     return {"status": "ok"}
 
 Instrumentator().instrument(app).expose(app)
