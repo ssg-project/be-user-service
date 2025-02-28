@@ -14,6 +14,14 @@ logger = logging.getLogger("user-service")
 logger.setLevel(logging.INFO)
 
 
+# `pod_name`, `node_name`을 자동으로 추가하는 필터
+class PodNodeFilter(logging.Filter):
+    def filter(self, record):
+        record.pod_name = pod_name
+        record.node_name = node_name
+        return True
+
+
 # 중복 핸들러 방지 및 로깅 포맷 설정
 if not logger.hasHandlers():
     handler = logging.StreamHandler()
@@ -22,6 +30,7 @@ if not logger.hasHandlers():
         "{pod: %(pod_name)s, node: %(node_name)s}"
     )
     handler.setFormatter(formatter)
+    handler.addFilter(PodNodeFilter())
     logger.addHandler(handler)
 
 logger.propagate = False  # root logger로 로그 전파 방지
@@ -33,7 +42,6 @@ app.include_router(user_router, prefix="/api/v1", tags=["user"])
 
 @app.get("/health")
 async def health_check():
-    logger.info("Health check API called", extra={"pod_name": pod_name, "node_name": node_name})
     return {"status": "ok"}
 
 Instrumentator().instrument(app).expose(app)
