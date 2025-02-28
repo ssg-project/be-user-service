@@ -10,7 +10,8 @@ from config.config import REDIS_HOST, REDIS_PORT
 import logging
 
 router = APIRouter(prefix='/auth', tags=['user'])
-logger = logging.getLogger(__name__)
+
+logger = logging.getLogger("user-service")
 auth_handler = AuthHandler()
 redis_client = Redis(
     host=REDIS_HOST,

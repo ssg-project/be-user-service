@@ -9,40 +9,30 @@ import os
 pod_name = os.environ.get("POD_NAME", "unknown-pod")
 node_name = os.environ.get("NODE_NAME", "unknown-node")
 
-#"user-service" 전용 로거 생성 (root logger 사용 X)
+# "user-service" 전용 로거 생성 (root logger 사용 X)
 logger = logging.getLogger("user-service")
 logger.setLevel(logging.INFO)
 
-
-# `pod_name`, `node_name`을 자동으로 추가하는 필터
-class PodNodeFilter(logging.Filter):
-    def filter(self, record):
-        record.pod_name = pod_name
-        record.node_name = node_name
-        return True
-
-
-# 중복 핸들러 방지 및 로깅 포맷 설정
+# 중복 핸들러 방지
 if not logger.hasHandlers():
     handler = logging.StreamHandler()
     formatter = logging.Formatter(
-        "%(asctime)s - user-service - %(name)s - %(levelname)s - %(message)s "
-        "{pod: %(pod_name)s, node: %(node_name)s}"
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s "
+        f"{{pod: {pod_name}, node: {node_name}}}"  # pod_name, node_name 직접 추가
     )
     handler.setFormatter(formatter)
-    handler.addFilter(PodNodeFilter())
     logger.addHandler(handler)
-
-logger.propagate = False  # root logger로 로그 전파 방지
-
 
 app = FastAPI()
 
+# API 라우터 등록
 app.include_router(user_router, prefix="/api/v1", tags=["user"])
 
 @app.get("/health")
 async def health_check():
+    logger.info("Health check API called")
     return {"status": "ok"}
+
 
 Instrumentator().instrument(app).expose(app)
 
@@ -52,5 +42,6 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=8001,
         reload=True,
-        log_config=None,  # uvicorn 기본 로깅 비활성화 (root logger 변경 방지)
+        log_config=None,  # Uvicorn 기본 로깅 비활성화
+        log_level="info"  # 기존의 "critical" 대신 "info" 유지
     )
