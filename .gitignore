@@ -4,3 +4,4 @@ env/
 *.pyc
 *.pyo
 __pycache__/
+.DS_Store
