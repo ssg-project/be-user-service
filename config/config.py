@@ -16,6 +16,7 @@ if not os.getenv("APP_ENV"):
 
     DB_USER = os.getenv("DB_USER")
     DB_PASS = os.getenv("DB_PASS")
+    DB_PORT = os.getenv("DB_PORT")
     DB_HOST = os.getenv("DB_HOST")
     DB_NAME = os.getenv("DB_NAME")
 
@@ -47,7 +48,7 @@ else:
     REDIS_HOST = secret_data["REDIS_HOST"]
     REDIS_PORT = secret_data["REDIS_PORT"]
 
-    db_secret_name = "secret/ticketing/rds"  # DB용 보안 암호 이름
+    db_secret_name = "secret/ticketing/rds"
     
     try:
         db_secret_response = client.get_secret_value(
@@ -63,4 +64,5 @@ else:
     DB_USER = db_secret_data["username"]
     DB_PASS = db_secret_data["password"]
     DB_HOST = db_secret_data["host"]
+    DB_PORT = db_secret_data["port"]
     DB_NAME = db_secret_data["dbInstanceIdentifier"]
