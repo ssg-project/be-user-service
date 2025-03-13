@@ -4,7 +4,7 @@ from services.user_service import UserService
 from dto.dto import *
 from utils.database import get_db
 from utils.auth_handler import AuthHandler
-from redis import Redis
+from redis import ConnectionPool, Redis
 import json
 from config.config import REDIS_HOST, REDIS_PORT
 import logging
@@ -13,12 +13,16 @@ router = APIRouter(prefix='/auth', tags=['user'])
 
 logger = logging.getLogger("user-service")
 auth_handler = AuthHandler()
-redis_client = Redis(
+redis_pool = ConnectionPool(
     host=REDIS_HOST,
     port=REDIS_PORT,
     db=0,
-    decode_responses=True
+    decode_responses=True,
+    max_connections=100
 )
+
+def get_redis_client():
+    return Redis(connection_pool=redis_pool)
 
 async def get_current_user(request: Request):
     scope_data = request.headers.get("X-Scope")
@@ -71,6 +75,8 @@ async def login(
         access_token = auth_handler.create_access_token(token_data)
         refresh_token = auth_handler.create_refresh_token(token_data)
         
+        redis_client = get_redis_client()
+
         redis_client.setex(
             f"access_token:{user.user_id}",
             auth_handler.access_token_expire * 60,
@@ -117,6 +123,8 @@ async def refresh_token(
         new_access_token = auth_handler.create_access_token(token_data)
         new_refresh_token = auth_handler.create_refresh_token(token_data)
         
+        redis_client = get_redis_client()
+
         redis_client.setex(
             f"access_token:{current_user['user_id']}",
             auth_handler.access_token_expire * 60,
@@ -150,6 +158,8 @@ async def logout(
     current_user = await get_current_user(request)
     try:
 
+        redis_client = get_redis_client()
+        
         redis_client.delete(f"access_token:{current_user['user_id']}")
         redis_client.delete(f"refresh_token:{current_user['user_id']}")
 

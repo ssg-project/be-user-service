@@ -1,5 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.pool import QueuePool
 from config.config import DB_USER, DB_PASS, DB_HOST, DB_NAME
 
 DATABASE_URL = (
@@ -7,11 +8,11 @@ DATABASE_URL = (
     f"@{DB_HOST}/{DB_NAME}"
 )
 engine = create_engine(
-    DATABASE_URL, 
-    pool_size=10, 
+    DATABASE_URL,
+    poolclass=QueuePool,
+    pool_size=10,
     max_overflow=20,
-    pool_pre_ping=True,
-    pool_recycle=3600
+    pool_recycle=3600,
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
